@@ -1,0 +1,37 @@
+#cloud-config
+package_update: true
+packages:
+  - nginx
+write_files:
+  - path: /etc/nginx/sites-available/default
+    content: |
+      server {
+          listen 443 ssl;
+          server_name registry-release.aviatrix.com;
+
+          ssl_certificate     /etc/nginx/ssl/avx-public-crt.crt;
+          ssl_certificate_key /etc/nginx/ssl/avx-crt.key;
+          ssl_protocols       TLSv1.2 TLSv1.3;
+          ssl_ciphers         HIGH:!aNULL:!MD5;
+
+          location / {
+              proxy_pass https://${acr_fqdn};
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+      }
+
+  - path: /etc/nginx/ssl/avx-crt.key
+    content: |
+      # Place your private key here or use a secret management solution
+    permissions: '0600'
+
+  - path: /etc/nginx/ssl/avx-public-crt.crt
+    content: |
+      # Place your public certificate here or use a secret management solution
+    permissions: '0644'
+
+runcmd:
+  - systemctl restart nginx
